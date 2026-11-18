@@ -1,0 +1,6 @@
+.git
+.venv
+tasks
+docs
+.github_*
+*token*
