@@ -1,0 +1,35 @@
+pull_request_rules:
+  - name: automatic merge
+    conditions:
+      - base=main
+      - -draft
+      - '#approved-reviews-by>=1'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+      - '#check-failure=0'
+      - '#check-pending=0'
+      - check-success=lint-commits
+      - check-success=test
+      - check-success=manifests
+      - check-success=build-and-push
+      - linear-history
+      - -label~=^(not-ready|merge-skip)
+    actions:
+      merge:
+        method: merge
+  - name: automatic merge for dependabot updates
+    conditions:
+      - base=main
+      - author=dependabot[bot]
+      - -draft
+      - '#check-failure=0'
+      - '#check-pending=0'
+      - check-success=lint-commits
+      - check-success=test
+      - check-success=manifests
+      - check-success=build-and-push
+      - linear-history
+      - -label~=^(not-ready|merge-skip)
+    actions:
+      merge:
+        method: squash

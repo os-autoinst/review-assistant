@@ -1,0 +1,130 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-assistant
+  labels:
+    app.kubernetes.io/name: review-assistant
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: review-assistant
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: review-assistant
+    spec:
+      terminationGracePeriodSeconds: 300
+      serviceAccountName: review-assistant
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: review-assistant
+          image: ghcr.io/os-autoinst/review-assistant:latest
+          args:
+            - daemon
+            - --config
+            - /config/reviewer.yaml
+            - --state-file
+            - /var/lib/review-assistant/state.json
+            - --skill-cache
+            - /opt/skills
+            - --heartbeat-file
+            - /tmp/heartbeat
+          env:
+            - name: HOME
+              value: /tmp
+            - name: TMPDIR
+              value: /scratch
+            - name: HERMES_HOME
+              value: /hermes
+            - name: CLOUDSDK_CONFIG
+              value: /etc/review-assistant/secrets/gcloud
+            - name: REVIEW_ASSISTANT_GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: review-assistant-secrets
+                  key: gh-write-token
+            - name: REVIEW_ASSISTANT_GH_READ_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: review-assistant-secrets
+                  key: gh-read-token
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test $(($(date +%s) - $(stat -c %Y /tmp/heartbeat))) -lt 300
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test $(($(date +%s) - $(stat -c %Y /tmp/heartbeat))) -lt 300
+            initialDelaySeconds: 60
+            periodSeconds: 60
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: scratch
+              mountPath: /scratch
+            - name: hermes-home
+              mountPath: /hermes
+            - name: hermes-config
+              mountPath: /hermes/config.yaml
+              subPath: hermes-config.yaml
+              readOnly: true
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: secrets
+              mountPath: /etc/review-assistant/secrets
+              readOnly: true
+            - name: state
+              mountPath: /var/lib/review-assistant
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: scratch
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: hermes-home
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: hermes-config
+          configMap:
+            name: review-assistant-config
+        - name: config
+          configMap:
+            name: review-assistant-config
+        - name: secrets
+          secret:
+            secretName: review-assistant-secrets
+            defaultMode: 0440
+            items:
+              - key: vertex-adc.json
+                path: gcloud/application_default_credentials.json
+        - name: state
+          persistentVolumeClaim:
+            claimName: review-assistant-state

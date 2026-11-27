@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly automated review of os-autoinst/openQA pull requests
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+Unit=review-assistant.service
+
+[Install]
+WantedBy=timers.target

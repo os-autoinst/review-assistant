@@ -1,0 +1,12 @@
+[Unit]
+Description=Automated model-based review of os-autoinst/openQA pull requests
+Documentation=https://progress.opensuse.org/issues/210027
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/local/ai/review-assistant
+ExecStartPre=/usr/bin/mkdir -p %h/.local/state/review-assistant
+ExecStart=%h/local/ai/review-assistant/.venv/bin/review-assistant-container
+TimeoutStartSec=2h
