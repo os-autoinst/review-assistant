@@ -47,6 +47,10 @@ requests, PyYAML, pydantic, ruff, ty, pytest.
 ## Commit guidelines
 
 - Commit titles follow conventional commits (enforced by gitlint).
+- Never leave `fixup!`, `squash!` or `amend!` commits in a branch: the CI commit message check rejects
+  them. `gitlint --commits` skips cleanup commits locally unless the three options
+  `-c general.ignore-fixup-commits=false`, `-c general.ignore-squash-commits=false` and
+  `-c general.ignore-fixup-amend-commits=false` are passed, which is what CI does.
 - For any non-trivial changes, especially "fix" or "feat" commits, mention motivation, design
   choices and user benefits in the commit message body.
 - Commit message format: 50/80 rule, 80-char limit.

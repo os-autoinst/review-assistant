@@ -21,9 +21,15 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install gitlint
-        run: uv tool install gitlint-core
+        run: uv tool install gitlint-core==0.19.1  # matches .pre-commit-config.yaml
       - name: Check commit messages
-        run: gitlint --commits origin/${{ github.base_ref }}..HEAD
+        # .gitlint keeps the ignore-fixup defaults so `git commit --fixup` passes the
+        # commit-msg hook; only this range check disables them.
+        run: |-
+          gitlint --commits origin/${{ github.base_ref }}..HEAD \
+            -c general.ignore-fixup-commits=false \
+            -c general.ignore-squash-commits=false \
+            -c general.ignore-fixup-amend-commits=false
 
   manifests:
     runs-on: ubuntu-latest
